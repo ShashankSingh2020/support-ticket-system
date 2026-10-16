@@ -1,0 +1,7 @@
+from rest_framework.routers import DefaultRouter
+from apps.tickets.views import TicketViewSet
+
+router = DefaultRouter()
+router.register(r"", TicketViewSet, basename="ticket")
+
+urlpatterns = router.urls

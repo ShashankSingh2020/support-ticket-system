@@ -1,0 +1,42 @@
+# Environment files & secrets (CRITICAL)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local Databases & storage
+*.sqlite3
+*.db
+db.sqlite3
+postgres_data/
+
+# Python / Virtualenv
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# Docker volumes / local logs
+*.log
+celerybeat-schedule
+celerybeat.pid
+
+# OS and Editor configs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
