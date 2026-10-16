@@ -1,0 +1,7 @@
+# Ensure JSX and JS files are counted as JavaScript
+*.jsx linguist-language=JavaScript
+*.js linguist-language=JavaScript
+
+# Prevent large static HTML fixtures or templates from overshadowing application logic
+templates/** linguist-detectable=false
+*.html linguist-detectable=false
