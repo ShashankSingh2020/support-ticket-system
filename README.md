@@ -2,324 +2,279 @@
 
 # 🎫 Enterprise Intelligent Support Ticket System
 
-**A production-style backend for managing customer support at scale, with AI-powered ticket classification, SLA monitoring, and role-based access control.**
+**A Django backend for managing support tickets with role-based access, a controlled ticket lifecycle, configurable SLA monitoring, an immutable audit trail, and asynchronous AI classification.**
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Django](https://img.shields.io/badge/Django-5.0-092E20?style=for-the-badge&logo=django&logoColor=white)
-![DRF](https://img.shields.io/badge/DRF-3.15-A30000?style=for-the-badge&logo=django&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![Celery](https://img.shields.io/badge/Celery-5.3-37814A?style=for-the-badge&logo=celery&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Gemini](https://img.shields.io/badge/Google_Gemini-AI-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
-![Pytest](https://img.shields.io/badge/Tested_with-Pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
-![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0-6BA539?style=for-the-badge&logo=openapiinitiative&logoColor=white)
-
-[Overview](#-overview) •
-[Features](#-key-features) •
-[Architecture](#-architecture) •
-[Tech Stack](#-tech-stack) •
-[Quick Start](#-quick-start) •
-[API Docs](#-api-documentation) •
-[Testing](#-testing)
+![Django](https://img.shields.io/badge/Django-5-092E20?style=for-the-badge&logo=django&logoColor=white)
+![DRF](https://img.shields.io/badge/DRF-REST_API-A30000?style=for-the-badge)
+![Celery](https://img.shields.io/badge/Celery-Redis-37814A?style=for-the-badge&logo=celery&logoColor=white)
+![Gemini](https://img.shields.io/badge/AI-Gemini_or_Mock-4E86F7?style=for-the-badge&logo=google&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 </div>
 
 ---
 
-## 📖 Overview
+## 📑 Table of Contents
 
-Support teams drown in tickets: some are urgent, some are misrouted, and some quietly breach their deadlines. This project solves that with a **backend platform** that:
-
-1. **Accepts tickets** from customers through a secure REST API.
-2. **Classifies them automatically** (category and priority) using an AI engine running in the background, so the API stays fast.
-3. **Routes work to the right people** using a strict role hierarchy: Admin, Manager, Agent, Customer.
-4. **Tracks every change** in an immutable audit trail.
-5. **Monitors SLAs** with scheduled background jobs so overdue tickets never go unnoticed.
-
-> 💡 **Built to demonstrate real backend engineering:** layered architecture, async processing, security by design, containerisation, and automated testing.
+- [Overview](#-overview)
+- [Key features](#-key-features)
+- [Architecture](#%EF%B8%8F-architecture)
+- [Roles and permissions](#-roles-and-permissions)
+- [Ticket lifecycle](#-ticket-lifecycle)
+- [AI classification](#-ai-classification)
+- [SLA monitoring](#%EF%B8%8F-sla-monitoring)
+- [Tech stack](#%EF%B8%8F-tech-stack)
+- [Project structure](#-project-structure)
+- [Getting started](#-getting-started)
+- [API documentation](#-api-documentation)
+- [Running tests](#-running-tests)
+- [Design decisions](#-design-decisions)
+- [Limitations](#%EF%B8%8F-limitations)
+- [Roadmap](#%EF%B8%8F-roadmap)
 
 ---
 
-## ✨ Key Features
+## 🎯 Overview
 
-| | Feature | What it does |
-|---|---|---|
-| 🔐 | **Role-Based Access Control** | Four roles (`ADMIN`, `MANAGER`, `AGENT`, `CUSTOMER`) enforced **server-side** through DRF permission classes. The UI is never trusted. |
-| 👤 | **Custom Email-Based User Model** | Users authenticate with email instead of username, using JWT tokens (SimpleJWT). |
-| 🔄 | **Ticket Workflow State Machine** | Status changes follow defined transitions, so invalid jumps are rejected. |
-| 🧾 | **Immutable Audit Log** | Every action creates a `TicketEvent` record, giving a full, tamper-resistant history of who did what and when. |
-| 🤖 | **Async AI Classification** | Celery workers classify tickets in the background, so API responses are never blocked by AI latency. |
-| 🔁 | **Dual-Mode AI Engine** | A deterministic **mock mode** (no API key, ideal for dev and CI) and a **production mode** powered by **Google Gemini**. |
-| ⏱️ | **Configurable SLA Monitoring** | Celery Beat runs periodic jobs that detect tickets at risk of, or already in, SLA breach. |
-| 🛡️ | **Race-Condition Safe Tasks** | Tasks are dispatched via `transaction.on_commit`, so a worker never picks up a ticket that isn't committed to the database yet. |
-| 🚦 | **Rate Limiting** | DRF throttling protects endpoints from abuse. |
-| 📚 | **Interactive API Docs** | Auto-generated OpenAPI 3.0 / Swagger UI via `drf-spectacular`. |
-| 🐳 | **One-Command Deployment** | Full stack (API, worker, scheduler, Postgres, Redis) runs with Docker Compose. |
-| ✅ | **Automated Tests** | Pytest suite with `pytest-django`, `pytest-mock`, and coverage reporting. |
+Support teams lose time to manual triage, unclear ownership, and missed deadlines. This system models the real workflow instead of just exposing CRUD endpoints:
+
+- customers raise tickets,
+- tickets are classified in the background,
+- agents and managers work them through a controlled lifecycle,
+- SLA timers show what is at risk,
+- every action leaves an audit record.
+
+---
+
+## ✨ Key features
+
+- 🔐 **Custom email-based user model** with four roles: `ADMIN`, `MANAGER`, `AGENT`, `CUSTOMER`
+- 🛡️ **Server-side RBAC** enforced with DRF permission classes (never trusted from the client)
+- 🔁 **State-machine ticket transitions:** only valid status changes are accepted
+- 🧾 **Immutable audit log** (`TicketEvent`) written on every action
+- ⏱️ **Configurable SLA monitoring**
+- 🤖 **Async AI classification** through Celery, with a deterministic **mock mode** (no API key) and a **Google Gemini** mode
+- 🧵 **Safe task dispatch:** Celery tasks are enqueued with `transaction.on_commit`, so workers never run before the ticket exists in the database
+- 🚦 **Rate-limited endpoints** (DRF throttling)
+- 📚 **Interactive OpenAPI 3 docs** via `drf-spectacular`
+- 🐳 **Dockerfile and docker-compose** included
 
 ---
 
 ## 🏗️ Architecture
 
-The project is a **modular Django monolith**: one deployable unit, with clean internal boundaries between domains. This gives the simplicity of a monolith with a structure that can be split into services later.
-
 ```mermaid
 flowchart LR
-    C([👤 Client / Frontend]) -->|REST + JWT| API
-
-    subgraph Docker Compose
-        API["🌐 Django + DRF API<br/>(RBAC · Throttling · Swagger)"]
-        DB[("🐘 PostgreSQL 16")]
-        R[("⚡ Redis 7<br/>Broker + Results")]
-        W["⚙️ Celery Worker<br/>(AI classification)"]
-        B["⏰ Celery Beat<br/>(SLA monitoring)"]
-    end
-
-    API <-->|ORM| DB
-    API -->|"enqueue on_commit"| R
-    R --> W
-    B -->|schedules periodic tasks| R
-    W <-->|read / write| DB
-    W -->|mock or live| AI{{"🤖 AI Engine"}}
-    AI -.production.-> G["✨ Google Gemini"]
-    AI -.development.-> M["🧪 Local Mock"]
+    C["Client / Frontend"] -- "REST + auth" --> API["Django REST Framework<br/>RBAC · throttling · validation"]
+    API --> DB[("Database")]
+    API -- "on_commit" --> R["Redis broker"]
+    R --> W["Celery worker"]
+    W --> AI{"AI mode"}
+    AI -- "mock" --> M["Deterministic classifier"]
+    AI -- "production" --> G["Google Gemini"]
+    W --> DB
+    API -. "every action" .-> A["TicketEvent<br/>(audit log)"]
+    A --> DB
 ```
 
-### 🔁 Request lifecycle: what happens when a ticket is created
+**Request vs background work:** creating a ticket returns immediately. Classification runs in a worker and updates the ticket afterwards, so a slow or failing AI call never blocks or breaks ticket creation.
+
+---
+
+## 👥 Roles and permissions
+
+| Role | Typical capabilities |
+|---|---|
+| **CUSTOMER** | Create tickets, view and comment on their own tickets |
+| **AGENT** | Work assigned tickets, update status within allowed transitions |
+| **MANAGER** | Assign and reassign tickets, view team tickets and SLA status |
+| **ADMIN** | Full access, user and configuration management |
+
+> Adjust this table to match the exact permission classes in `apps/`.
+
+---
+
+## 🔁 Ticket lifecycle
+
+Status changes go through a state machine, so a ticket cannot jump to an arbitrary status.
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant U as Customer
-    participant A as Django API
-    participant D as PostgreSQL
-    participant Q as Redis Queue
-    participant W as Celery Worker
-    participant AI as AI Engine
-
-    U->>A: POST /tickets (JWT)
-    A->>A: Authenticate and check role permissions
-    A->>D: Save ticket and TicketEvent (atomic)
-    A-->>Q: transaction.on_commit → enqueue classify task
-    A-->>U: 201 Created (instant response)
-    Q->>W: Deliver task
-    W->>AI: Classify ticket (category, priority)
-    AI-->>W: Result
-    W->>D: Update ticket and log TicketEvent
+stateDiagram-v2
+    [*] --> OPEN
+    OPEN --> IN_PROGRESS
+    IN_PROGRESS --> RESOLVED
+    RESOLVED --> CLOSED
+    RESOLVED --> IN_PROGRESS: reopened
+    CLOSED --> [*]
 ```
 
-> **Why `transaction.on_commit`?** If a task is queued *before* the database transaction commits, the worker may look for a ticket that doesn't exist yet. Dispatching on commit eliminates this race condition entirely.
+> Replace the states above with the actual status values from your ticket model. Each transition writes a `TicketEvent` (who, what, when).
 
 ---
 
-## 🧰 Tech Stack
+## 🤖 AI classification
 
-| Layer | Technology | Purpose |
+After a ticket is created, a Celery task classifies it (for example category and priority) and stores the result.
+
+| Mode | When to use | Needs API key |
 |---|---|---|
-| **Language** | Python | Core application language |
-| **Framework** | Django 5.0, Django REST Framework 3.15 | Web framework and REST API |
-| **Authentication** | `djangorestframework-simplejwt` | JWT access and refresh tokens |
-| **Database** | PostgreSQL 16 (`psycopg2`) | Primary relational datastore |
-| **Task Queue** | Celery 5.3 | Background jobs and scheduled tasks |
-| **Broker / Cache** | Redis 7 | Message broker and result backend |
-| **AI** | Google Gemini (plus local mock mode) | Ticket classification |
-| **API Docs** | `drf-spectacular` | OpenAPI 3.0 schema and Swagger UI |
-| **Filtering** | `django-filter` | Query filtering on list endpoints |
-| **Validation** | Pydantic 2 | Structured validation of AI responses |
-| **Config** | `django-environ`, `python-dotenv` | 12-factor environment configuration |
-| **CORS** | `django-cors-headers` | Safe frontend–backend communication |
-| **Testing** | Pytest, `pytest-django`, `pytest-mock`, Coverage | Automated testing and coverage |
-| **DevOps** | Docker, Docker Compose | Containerised, reproducible environment |
+| **Mock** | Local development, tests, demos | No |
+| **Gemini** | Production-style runs | Yes |
+
+If the AI step fails, the ticket is still created and usable; classification can be retried.
 
 ---
 
-## 📂 Project Structure
+## ⏱️ SLA monitoring
+
+SLA targets are configurable. Tickets are tracked against their targets so managers can see which are on time, at risk, or breached.
+
+> Describe the exact rules here, for example: *response target by priority, resolution target by priority, how breaches are detected (scheduled task or on read).*
+
+---
+
+## 🛠️ Tech stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Django 5, Django REST Framework |
+| Auth and RBAC | Custom email User model, DRF permissions |
+| Async | Celery + Redis |
+| AI | Google Gemini or built-in mock classifier |
+| API docs | drf-spectacular (OpenAPI 3, Swagger UI) |
+| Testing | pytest |
+| Packaging | Docker, Docker Compose |
+
+---
+
+## 📂 Project structure
 
 ```text
 support-ticket-system/
-├── apps/                  # Modular Django apps (users, tickets, AI, SLA, ...)
-├── config/                # Project settings, URLs, Celery configuration
-├── frontend/              # Client-side interface
-├── tests/                 # Automated test suite
-├── Dockerfile             # API / worker image
-├── docker-compose.yml     # Full stack: API, worker, beat, Postgres, Redis
-├── manage.py              # Django entry point
-├── pytest.ini             # Test configuration
-├── requirements.txt       # Pinned dependencies
-├── schema.yml             # Generated OpenAPI 3.0 schema
-└── .env.example           # Environment variable template
+├── apps/              # Django apps (users, tickets, audit, ...)
+├── config/            # Settings, URLs, Celery configuration
+├── frontend/          # Client UI
+├── tests/             # Test suite
+├── schema.yml         # Generated OpenAPI schema
+├── Dockerfile
+├── docker-compose.yml
+├── manage.py
+├── pytest.ini
+├── requirements.txt
+└── .env.example
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Getting started
 
-### Option A: Docker (recommended, one command)
+### Prerequisites
 
-**Prerequisites:** Docker and Docker Compose.
+- Python 3.11+
+- Redis (or Docker Desktop to run it)
+- A Gemini API key **only if** you want production AI mode
 
-```bash
-# 1. Clone the repository
+### 1. Clone and install
+
+```powershell
 git clone https://github.com/ShashankSingh2020/support-ticket-system.git
 cd support-ticket-system
 
-# 2. Create your environment file
-cp .env.example .env
-# (Optional) add GEMINI_API_KEY to use the live AI engine
-
-# 3. Start everything
-docker compose up --build
-
-# 4. In a new terminal: apply migrations and create an admin user
-docker compose exec web python manage.py migrate
-docker compose exec web python manage.py createsuperuser
-```
-
-**Services started:**
-
-| Service | Container | Host Port |
-|---|---|---|
-| 🌐 Django API | `support_ticket_api` | `8000` |
-| 🐘 PostgreSQL | `support_ticket_db` | `5433` |
-| ⚡ Redis | `support_ticket_redis` | `6380` |
-| ⚙️ Celery Worker | `support_ticket_worker` | n/a |
-| ⏰ Celery Beat | `support_ticket_beat` | n/a |
-
-### Option B: Local setup (PowerShell)
-
-```powershell
-# Create and activate a virtual environment
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Configure environment
-Copy-Item .env.example .env
-
-# Apply migrations and run the server
-python manage.py migrate
-python manage.py runserver
 ```
 
-In separate terminals (with the venv activated), start the background processes:
+### 2. Configure environment
 
 ```powershell
-celery -A config worker --loglevel=info --pool=solo
-celery -A config beat --loglevel=info
+Copy-Item .env.example .env
 ```
 
-> 🪟 On Windows, Celery's `--pool=solo` flag avoids multiprocessing issues.
+Open `.env` and fill in the values listed in `.env.example`. Leave the AI setting on mock mode to run without any API key. Never commit `.env`.
+
+### 3. Migrate and create an admin
+
+```powershell
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+### 4. Run the services (separate terminals)
+
+```powershell
+# Terminal 1: API
+python manage.py runserver 8000
+
+# Terminal 2: Celery worker (-P solo is required on Windows)
+celery -A config worker --loglevel=info -P solo
+```
+
+Redis must be running (for example `docker run -d -p 6379:6379 redis`, or use the provided `docker-compose.yml`).
+
+### Run with Docker
+
+```powershell
+docker compose up --build
+```
 
 ---
 
-## 🤖 AI Classification Modes
+## 📚 API documentation
 
-The AI provider is switched with a single environment variable:
+With the server running, open the interactive docs:
 
-| Mode | `AI_PROVIDER` | API Key Needed | Best For |
-|---|---|---|---|
-| 🧪 **Mock** | `mock` | ❌ No | Local development, CI pipelines, demos, deterministic tests |
-| ✨ **Gemini** | `gemini` | ✅ `GEMINI_API_KEY` | Production-grade classification |
+- Swagger UI: `http://localhost:8000/api/docs/`
+- Raw schema: `schema.yml` in this repo
 
-The mock engine is deterministic, so tests never depend on network calls or API quotas. Responses are validated with **Pydantic**, so malformed AI output can't corrupt ticket data.
+> Add a short table of your main endpoints here (create ticket, list tickets, assign, change status, view audit events).
 
 ---
 
-## 🔐 Roles and Permissions
+## 🧪 Running tests
 
-Access control is enforced on the **server**, on every request.
-
-| Role | Description |
-|---|---|
-| 👑 **ADMIN** | Full system control, including user and configuration management |
-| 🧭 **MANAGER** | Oversees teams, monitors SLAs, and manages assignments |
-| 🛠️ **AGENT** | Works on assigned tickets and updates their status |
-| 🙋 **CUSTOMER** | Creates tickets and views only their own |
-
----
-
-## 📚 API Documentation
-
-Once the server is running, interactive documentation is generated automatically from the code:
-
-- **Swagger UI:** `http://localhost:8000/` (see `config/urls.py` for the exact docs path)
-- **OpenAPI schema:** [`schema.yml`](./schema.yml) in this repository
-
-You can try every endpoint directly in the browser, authorising with a JWT token.
-
----
-
-## 🧪 Testing
-
-```bash
-# Run the full test suite
+```powershell
 pytest
-
-# With coverage report
-coverage run -m pytest
-coverage report
 ```
 
-The suite uses `pytest-django` for database-backed tests and `pytest-mock` to isolate external services such as the AI provider and Celery.
+Add your own numbers here once you have them, for example: *N tests covering permissions, state transitions, and audit logging.*
 
 ---
 
-## ⚙️ Configuration
+## 🧠 Design decisions
 
-All configuration is environment-driven (see [`.env.example`](./.env.example)):
-
-| Variable | Description |
+| Decision | Reason |
 |---|---|
-| `DJANGO_SETTINGS_MODULE` | Settings module, e.g. `config.settings.development` |
-| `DEBUG` | Enable or disable debug mode |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `CELERY_BROKER_URL` | Redis URL for the Celery broker |
-| `CELERY_RESULT_BACKEND` | Redis URL for task results |
-| `AI_PROVIDER` | `mock` or `gemini` |
-| `GEMINI_API_KEY` | Required only when `AI_PROVIDER=gemini` |
-
-> ⚠️ **Never commit your `.env` file.** Use `.env.example` as the template.
+| State machine for status | Prevents invalid transitions and keeps the workflow auditable |
+| Immutable `TicketEvent` log | Every change has an actor and a timestamp |
+| `transaction.on_commit` for Celery dispatch | Avoids the race where a worker runs before the database commit |
+| Mock AI mode | Development and CI work without keys or network calls |
+| Server-side RBAC | Roles are never trusted from the client |
+| Throttling | Protects endpoints from abuse |
 
 ---
 
-## 🧠 Engineering Highlights
+## ⚠️ Limitations
 
-What this project demonstrates:
-
-- **Separation of concerns:** modular apps with clear domain boundaries.
-- **Async-first design:** slow AI work is moved off the request path with Celery and Redis.
-- **Data integrity:** atomic transactions, `on_commit` task dispatch, and immutable audit events.
-- **Security by design:** server-side RBAC, JWT authentication, and rate limiting.
-- **Testability:** a deterministic mock AI mode and a mocked test layer.
-- **DevOps readiness:** a fully containerised, reproducible multi-service environment.
-- **API-first documentation:** a living OpenAPI spec generated from the code.
+- AI classification quality in mock mode is rule-based and only for development.
+- SLA breach detection depends on how it is scheduled; see the SLA section.
+- Not load-tested at scale. Add measurements here when you have them.
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] CI pipeline with GitHub Actions (tests and linting on every push)
-- [ ] Email and webhook notifications on SLA breach
-- [ ] Analytics dashboard for managers
-- [ ] File attachments on tickets
-- [ ] Production deployment configuration
-
----
-
-## 👨‍💻 Author
-
-**Shashank Singh**
-B.Tech, Electronics and Communication Engineering, Bangalore Institute of Technology
-
-[![GitHub](https://img.shields.io/badge/GitHub-ShashankSingh2020-181717?style=for-the-badge&logo=github)](https://github.com/ShashankSingh2020)
+- [ ] Email or in-app notifications for SLA risk
+- [ ] Ticket comments and attachments
+- [ ] Reporting dashboard for managers
+- [ ] GitHub Actions CI
+- [ ] Deployed demo
 
 ---
 
 <div align="center">
 
-⭐ If you found this project interesting, consider giving it a star!
+Built by **[Shashank Singh](https://github.com/ShashankSingh2020)**
 
 </div>
